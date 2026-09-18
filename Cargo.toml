@@ -1,0 +1,33 @@
+[package]
+name = "rundb"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rundb"
+path = "src/main.rs"
+
+[lib]
+name = "rundb"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+rquickjs = { version = "0.6", features = ["full-async", "parallel"] }
+tokio = { version = "1", features = ["full"] }
+tiberius = { version = "0.12", default-features = false, features = ["tds73", "rustls", "chrono", "rust_decimal"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+uuid = { version = "1", features = ["serde"] }
+rust_decimal = { version = "1", features = ["serde-with-str"] }
+dialoguer = "0.11"
+comfy-table = "7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+terminal_size = "0.4"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+
+[profile.release]
+lto = true
+strip = true
