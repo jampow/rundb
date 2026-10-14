@@ -1,3 +1,4 @@
+use crate::connection_store::ConnectionProfile;
 use anyhow::{bail, Result};
 use tiberius::{AuthMethod, Client, Config, EncryptionLevel};
 use tokio::net::TcpStream;
@@ -57,6 +58,37 @@ pub fn build_config(env: &str, system: &str) -> Result<Config> {
     config.trust_cert();
 
     Ok(config)
+}
+
+pub fn build_config_from_profile(profile: &ConnectionProfile) -> Result<Config> {
+    if profile.adapter != "sqlserver" {
+        bail!("Adapter não suportado: {}", profile.adapter);
+    }
+    let mut config = Config::new();
+    config.host(&profile.host);
+    config.port(profile.port);
+    config.authentication(AuthMethod::sql_server(
+        profile.username.clone(),
+        profile.password.clone(),
+    ));
+    if let Some(database) = &profile.database {
+        config.database(database);
+    }
+    if profile.encrypt {
+        config.encryption(EncryptionLevel::Required);
+    }
+    if profile.trust_certificate {
+        config.trust_cert();
+    }
+    Ok(config)
+}
+
+pub async fn connect_profile(profile: &ConnectionProfile) -> Result<DbClient> {
+    let config = build_config_from_profile(profile)?;
+    let addr = config.get_addr();
+    let tcp = TcpStream::connect(addr).await?;
+    tcp.set_nodelay(true)?;
+    Ok(Client::connect(config, tcp.compat_write()).await?)
 }
 
 pub async fn connect(env: &str, system: &str) -> Result<DbClient> {

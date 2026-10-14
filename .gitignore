@@ -2,3 +2,6 @@
 *.log
 
 db-scripts
+
+.rundb-connections.enc
+*.enc.tmp

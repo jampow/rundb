@@ -12,6 +12,7 @@ graças a um motor JavaScript (QuickJS via `rquickjs`) embutido no binário.
 
 ```
 rundb --file <caminho-do-script.js> [options]
+rundb connection <add|list|remove|test>
 ```
 
 Se `--file`/`-f` não for informado, lista os scripts disponíveis em
@@ -29,6 +30,32 @@ para escolha interativa.
 | `-d, --debug`    | Exibe SQL e resultado de todas as queries, não só a última        |
 | `-h, --help`     | Mostra a mensagem de ajuda                                        |
 | `--scripts-dir`  | Diretório onde os scripts `.js` estão (default: `./db-scripts`)    |
+
+### Conexões armazenadas
+
+As conexões podem ser cadastradas interativamente e ficam associadas à pasta dos
+scripts:
+
+```
+rundb connection add
+rundb connection list
+rundb connection test users-dev
+rundb connection remove users-dev
+```
+
+O cadastro inclui `name`, `adapter`, `environment`, `system`, `host`, `port`,
+`database`, `username`, `password` e opções de criptografia. O adapter disponível
+atualmente é `sqlserver`; o campo existe para permitir adapters futuros.
+
+Os dados são gravados em `db-scripts/.rundb-connections.enc`, criptografados com
+ChaCha20-Poly1305. A chave é mantida no cofre de credenciais do sistema. Quando
+esse cofre não está disponível, o `rundb` solicita uma senha-mestra e usa Argon2
+para derivar a chave. O arquivo nunca contém as senhas em texto puro e deve ser
+adicionado ao `.gitignore`:
+
+```
+.rundb-connections.enc
+```
 
 ### Exemplos
 
@@ -52,6 +79,9 @@ DB_<ENV>_<SYSTEM>_DB    # opcional
 ```
 
 Exemplo: `DB_DEV_USERS_SVR`, `DB_DEV_USERS_USR`, `DB_DEV_USERS_PWD`.
+
+Durante a migração, uma conexão cadastrada tem prioridade. Se não houver uma
+conexão para o par ambiente/sistema, as variáveis acima continuam sendo usadas.
 
 ## Formato dos scripts
 

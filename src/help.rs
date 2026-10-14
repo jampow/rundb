@@ -1,5 +1,6 @@
 pub fn print_help() {
     println!("Usage: rundb --file <path> [options]");
+    println!("       rundb connection <add|list|remove|test>");
     println!();
     println!("Executa um script de banco de dados (SQL Server) contra um ambiente.");
     println!("O script deve exportar {{ database, mode, params, queries }}.");
@@ -13,6 +14,13 @@ pub fn print_help() {
     println!("Diretório de scripts:");
     println!("  Por padrão, procura em ./db-scripts (relativo ao diretório atual).");
     println!("  Pode ser sobrescrito com --scripts-dir <path> ou a env var DB_SCRIPTS_DIR.");
+    println!();
+    println!("Conexões armazenadas:");
+    println!("  rundb connection add");
+    println!("  rundb connection list");
+    println!("  rundb connection test <name>");
+    println!("  rundb connection remove <name>");
+    println!("  São armazenadas criptografadas junto dos scripts.");
     println!();
     println!("Options:");
     println!("  --file, -f  Caminho do arquivo de script (.js)");
