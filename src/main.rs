@@ -185,8 +185,8 @@ async fn run(cli: Cli) -> Result<()> {
 
 async fn run_connection_command(dir: &PathBuf, action: &ConnectionAction) -> Result<()> {
     match action {
-        ConnectionAction::Add => {
-            let profile = connection_store::prompt_profile()?;
+        ConnectionAction::Add(args) => {
+            let profile = connection_store::prompt_profile(args)?;
             let mut connections = connection_store::load(dir)?;
             if let Some(existing) = connections.iter_mut().find(|c| c.name == profile.name) {
                 *existing = profile;

@@ -26,7 +26,7 @@ pub struct ConnectionArgs {
 #[derive(Subcommand, Debug)]
 pub enum ConnectionAction {
     /// Cadastra ou substitui uma conexão
-    Add,
+    Add(ConnectionAddArgs),
     /// Lista conexões cadastradas
     List,
     /// Remove uma conexão
@@ -39,6 +39,49 @@ pub enum ConnectionAction {
         /// Nome da conexão
         name: String,
     },
+}
+
+#[derive(Args, Debug)]
+pub struct ConnectionAddArgs {
+    /// Nome identificador da conexão
+    #[arg(long)]
+    pub name: Option<String>,
+
+    /// Adapter da conexão (default: sqlserver)
+    #[arg(long, default_value = "sqlserver")]
+    pub adapter: String,
+
+    /// Ambiente, por exemplo dev, stg ou prd
+    #[arg(long, alias = "environment")]
+    pub env: Option<String>,
+
+    /// Sistema usado no campo database do script
+    #[arg(long)]
+    pub system: Option<String>,
+
+    /// Host do banco
+    #[arg(long)]
+    pub host: Option<String>,
+
+    /// Porta do banco (default: 1433)
+    #[arg(long, default_value_t = 1433)]
+    pub port: u16,
+
+    /// Database inicial (opcional)
+    #[arg(long)]
+    pub database: Option<String>,
+
+    /// Usuário do banco
+    #[arg(long)]
+    pub username: Option<String>,
+
+    /// Não exige criptografia TLS na conexão
+    #[arg(long)]
+    pub no_encrypt: bool,
+
+    /// Não confia automaticamente no certificado do servidor
+    #[arg(long)]
+    pub no_trust_certificate: bool,
 }
 
 #[derive(Args, Debug)]

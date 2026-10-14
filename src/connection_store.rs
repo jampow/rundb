@@ -4,10 +4,12 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit},
     ChaCha20Poly1305, Key, Nonce,
 };
-use dialoguer::{Confirm, Input, Password};
+use dialoguer::{Input, Password};
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+
+use crate::cli::ConnectionAddArgs;
 
 const FILE_NAME: &str = ".rundb-connections.enc";
 const KEYRING_SERVICE: &str = "rundb-connections";
@@ -112,40 +114,27 @@ pub fn save(scripts_dir: &Path, connections: &[ConnectionProfile]) -> Result<()>
     Ok(())
 }
 
-pub fn prompt_profile() -> Result<ConnectionProfile> {
-    let adapter: String = Input::new()
-        .with_prompt("Adapter")
-        .default("sqlserver".into())
-        .interact_text()?;
+pub fn prompt_profile(args: &ConnectionAddArgs) -> Result<ConnectionProfile> {
+    let adapter = args.adapter.trim().to_lowercase();
     if adapter.to_lowercase() != "sqlserver" {
         bail!("Adapter ainda não suportado: {adapter}. O único adapter disponível é sqlserver.");
     }
-    let name = required("Nome da conexão")?;
-    let environment = required("Ambiente")?;
-    let system = required("Sistema/database usado pelo script")?;
-    let host = required("Host")?;
-    let port: u16 = Input::new()
-        .with_prompt("Porta")
-        .default(1433)
-        .interact_text()?;
-    let database = optional("Database")?;
-    let username = required("Usuário")?;
+    let name = value_or_prompt(args.name.clone(), "Nome da conexão")?;
+    let environment = value_or_prompt(args.env.clone(), "Ambiente")?;
+    let system = value_or_prompt(args.system.clone(), "Sistema/database usado pelo script")?;
+    let host = value_or_prompt(args.host.clone(), "Host")?;
+    let database = args.database.clone();
+    let username = value_or_prompt(args.username.clone(), "Usuário")?;
     let password = Password::new().with_prompt("Senha").interact()?;
-    let encrypt = Confirm::new()
-        .with_prompt("Usar criptografia")
-        .default(true)
-        .interact()?;
-    let trust_certificate = Confirm::new()
-        .with_prompt("Confiar no certificado")
-        .default(true)
-        .interact()?;
+    let encrypt = !args.no_encrypt;
+    let trust_certificate = !args.no_trust_certificate;
     Ok(ConnectionProfile {
         name,
         adapter: adapter.to_lowercase(),
         environment,
         system,
         host,
-        port,
+        port: args.port,
         database,
         username,
         password,
@@ -154,20 +143,20 @@ pub fn prompt_profile() -> Result<ConnectionProfile> {
     })
 }
 
+fn value_or_prompt(value: Option<String>, prompt: &str) -> Result<String> {
+    match value {
+        Some(value) if !value.trim().is_empty() => Ok(value),
+        Some(_) => bail!("{prompt} não pode ser vazio"),
+        None => required(prompt),
+    }
+}
+
 fn required(prompt: &str) -> Result<String> {
     let value: String = Input::new().with_prompt(prompt).interact_text()?;
     if value.trim().is_empty() {
         bail!("{prompt} não pode ser vazio")
     }
     Ok(value)
-}
-
-fn optional(prompt: &str) -> Result<Option<String>> {
-    let value: String = Input::new()
-        .with_prompt(format!("{prompt} (opcional)"))
-        .allow_empty(true)
-        .interact_text()?;
-    Ok((!value.trim().is_empty()).then_some(value))
 }
 
 fn keyring_user(path: &Path) -> String {

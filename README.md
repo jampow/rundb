@@ -38,6 +38,8 @@ scripts:
 
 ```
 rundb connection add
+rundb connection add --name users-dev --env dev --system USERS \
+  --host sql-dev.example.com --database Users --username app_user
 rundb connection list
 rundb connection test users-dev
 rundb connection remove users-dev
