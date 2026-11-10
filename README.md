@@ -15,9 +15,15 @@ rundb --file <caminho-do-script.js> [options]
 rundb connection <add|list|remove|test>
 ```
 
-Se `--file`/`-f` não for informado, lista os scripts disponíveis em
-`./db-scripts` (ou no diretório definido em `--scripts-dir` / `DB_SCRIPTS_DIR`)
-para escolha interativa.
+Se `--file`/`-f` não for informado, abre um seletor interativo com os scripts
+disponíveis em `./db-scripts` (ou no diretório definido em `--scripts-dir` /
+`DB_SCRIPTS_DIR`). A tela é dividida: a lista à esquerda e, à direita, a
+`description` do script destacado, renderizada como markdown com syntax
+highlight nos blocos de código.
+
+Teclas: `↑/↓` (ou `j/k`) navegam, `Enter` executa, `/` filtra por nome,
+`PgUp/PgDn` rolam a descrição, `Esc`/`q` saem. Sem terminal interativo, usa uma
+lista simples.
 
 ### Options
 
@@ -91,6 +97,13 @@ Idêntico ao projeto original em Node — veja `db-scripts/example.js`.
 
 ```js
 module.exports = {
+  description: `        // opcional: markdown exibido na seleção do script
+# Buscar usuário
+Busca um usuário pelo **e-mail**.
+\`\`\`sql
+SELECT Id, Email FROM [User] WHERE Email = @email
+\`\`\`
+`,
   database: 'USERS',        // define o prefixo das envs DB_<ENV>_<SYSTEM>_*
   mode: 'sequential',        // 'sequential' (default) ou 'parallel'
   params: [

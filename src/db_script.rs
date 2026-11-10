@@ -35,6 +35,7 @@ pub enum Mode {
 }
 
 pub struct Script {
+    pub description: Option<String>,
     pub database: String,
     pub mode: Mode,
     pub params: Vec<ParamDef>,
@@ -138,7 +139,7 @@ pub fn load(path: &Path) -> Result<Script> {
         "(function() {{ const module = {{ exports: {{}} }}; const exports = module.exports; {source}\nreturn module.exports; }})()"
     );
 
-    let (database, mode, params, queries) = context.with(|ctx| -> Result<_> {
+    let (description, database, mode, params, queries) = context.with(|ctx| -> Result<_> {
         let exports: Value = ctx
             .eval(wrapped.into_bytes())
             .map_err(|e| anyhow!("Erro ao avaliar script JS: {e}\n{}", describe_js_error(&ctx)))?;
@@ -146,6 +147,10 @@ pub fn load(path: &Path) -> Result<Script> {
         let obj = exports
             .as_object()
             .ok_or_else(|| anyhow!("O script \"{}\" deve exportar um objeto.", path.display()))?;
+
+        let description = get_opt_string(obj, "description")?
+            .map(|d| d.trim().to_string())
+            .filter(|d| !d.is_empty());
 
         let database = get_opt_string(obj, "database")?
             .ok_or_else(|| anyhow!("O script \"{}\" deve declarar \"database\".", path.display()))?;
@@ -231,10 +236,11 @@ pub fn load(path: &Path) -> Result<Script> {
             });
         }
 
-        Ok((database, mode, params, queries))
+        Ok((description, database, mode, params, queries))
     })?;
 
     Ok(Script {
+        description,
         database,
         mode,
         params,
@@ -242,6 +248,39 @@ pub fn load(path: &Path) -> Result<Script> {
         _runtime: runtime,
         context,
     })
+}
+
+pub struct ScriptEntry {
+    pub file: String,
+    pub description: Option<String>,
+    pub error: Option<String>,
+}
+
+/// Lista os scripts `.js` de `dir` (ordenados) com a descrição de cada um.
+/// Scripts que falham ao carregar são listados com `error` preenchido.
+pub fn list_scripts(dir: &Path) -> Result<Vec<ScriptEntry>> {
+    let mut files: Vec<String> = std::fs::read_dir(dir)?
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .filter(|f| f.ends_with(".js"))
+        .collect();
+    files.sort();
+
+    Ok(files
+        .into_iter()
+        .map(|file| match load(&dir.join(&file)) {
+            Ok(script) => ScriptEntry {
+                file,
+                description: script.description.clone(),
+                error: None,
+            },
+            Err(e) => ScriptEntry {
+                file,
+                description: None,
+                error: Some(e.to_string()),
+            },
+        })
+        .collect())
 }
 
 fn describe_js_error(ctx: &rquickjs::Ctx) -> String {
@@ -370,5 +409,37 @@ impl Script {
 
             Ok(s)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write_script(name: &str, body: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("rundb-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(name);
+        std::fs::write(&path, body).unwrap();
+        path
+    }
+
+    #[test]
+    fn reads_description() {
+        let path = write_script(
+            "desc.js",
+            "module.exports = { description: `# Título\n\nTexto`, database: 'X', queries: [{ sql: () => 'select 1' }] };",
+        );
+        let script = load(&path).unwrap();
+        assert_eq!(script.description.as_deref(), Some("# Título\n\nTexto"));
+    }
+
+    #[test]
+    fn description_is_optional() {
+        let path = write_script(
+            "nodesc.js",
+            "module.exports = { database: 'X', queries: [{ sql: () => 'select 1' }] };",
+        );
+        assert!(load(&path).unwrap().description.is_none());
     }
 }

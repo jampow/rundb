@@ -3,5 +3,7 @@ pub mod connection;
 pub mod connection_store;
 pub mod db_script;
 pub mod help;
+pub mod markdown;
 pub mod params;
+pub mod picker;
 pub mod runner;

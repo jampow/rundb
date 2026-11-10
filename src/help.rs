@@ -4,6 +4,9 @@ pub fn print_help() {
     println!();
     println!("Executa um script de banco de dados (SQL Server) contra um ambiente.");
     println!("O script deve exportar {{ database, mode, params, queries }}.");
+    println!("Opcionalmente, \"description\" (markdown) explica o script e aparece na seleção.");
+    println!();
+    println!("Sem --file, abre um seletor com a descrição (markdown) do script destacado.");
     println!();
     println!("Variáveis de ambiente esperadas:");
     println!("  DB_<ENV>_<SYSTEM>_SVR");

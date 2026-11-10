@@ -37,6 +37,9 @@ fn main() {
                         }
                     }
                 }
+                if script.description.is_some() {
+                    print!("[com descrição] ");
+                }
                 if ok {
                     println!(
                         "OK (database={}, {} queries)",

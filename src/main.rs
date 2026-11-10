@@ -1,8 +1,7 @@
 use anyhow::{bail, Result};
 use clap::Parser;
-use dialoguer::Select;
 use rundb::cli::{Cli, Command, ConnectionAction};
-use rundb::{connection, connection_store, db_script, help, params, runner};
+use rundb::{connection, connection_store, db_script, help, params, picker, runner};
 use serde_json::Value as Json;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -78,23 +77,16 @@ async fn run(cli: Cli) -> Result<()> {
             if !dir.exists() {
                 bail!("Pasta de scripts não encontrada: {}", dir.display());
             }
-            let mut scripts: Vec<String> = std::fs::read_dir(&dir)?
-                .filter_map(|e| e.ok())
-                .map(|e| e.file_name().to_string_lossy().to_string())
-                .filter(|f| f.ends_with(".js"))
-                .collect();
-            scripts.sort();
+            let scripts = db_script::list_scripts(&dir)?;
 
             if scripts.is_empty() {
                 bail!("Nenhum script encontrado em {}.", dir.display());
             }
 
-            let selection = Select::new()
-                .with_prompt("Qual script deseja executar?")
-                .items(&scripts)
-                .default(0)
-                .interact()?;
-            scripts[selection].clone()
+            match picker::pick_script(&scripts)? {
+                Some(file) => file,
+                None => return Ok(()),
+            }
         }
     };
 
@@ -119,6 +111,12 @@ async fn run(cli: Cli) -> Result<()> {
     println!("Databases: {}", databases.join(", "));
     println!("Ambiente:  {}", cli.env);
     println!("Modo:      {mode_label}");
+    if let Some(desc) = &script.description {
+        println!("\nDescrição:");
+        for line in desc.lines() {
+            println!("  {line}");
+        }
+    }
 
     let provided_params = params::parse_param_flags(&cli.param)?;
     let mut resolved_params = params::resolve_params(&script.params, &provided_params)?;
